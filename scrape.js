@@ -30,16 +30,23 @@ const userAgents = [
 ];
 
 (async () => {
-    const browser = await puppeteer.launch({ headless: false, defaultViewport: null, args: ["--start-maximized"] });
-    const page = await browser.newPage();
+    const browser = await puppeteer.launch({
+        headless: false,
+        args: [
+            "--start-maximized",
+            `--window-size=${1920 + Math.floor(Math.random() * 100)},${1080 + Math.floor(Math.random() * 100)}`
+        ],
+        defaultViewport: null,
+    });
+    let page = await browser.newPage();
 
 
     // Randomize window size incase they are checking sizes
-    await page.setViewport({
-        width: 1920 + Math.floor(Math.random() * 100),
-        height: 1080 + Math.floor(Math.random() * 100),
-        deviceScaleFactor: 1,
-    });
+    // await page.setViewport({
+    //     width: 1920 + Math.floor(Math.random() * 100),
+    //     height: 1080 + Math.floor(Math.random() * 100),
+    //     deviceScaleFactor: 1,
+    // });
     // Function to randomize user-agent
     const setUserAgent = async (page) => {
         // Randomly pick a user agent from the list
@@ -172,6 +179,20 @@ const userAgents = [
 
     if (!fs.existsSync(pdfDir)) {
         fs.mkdirSync(pdfDir, { recursive: true });
+    }
+
+    // Clear cookies and local storage to start a fresh session
+    const client = await page.target().createCDPSession();
+    await client.send('Network.clearBrowserCookies');
+    await client.send('Network.clearBrowserCache');
+
+    try {
+        await page.evaluate(() => {
+            localStorage.clear();
+            sessionStorage.clear();
+        });
+    } catch (e) {
+        console.error('LocalStorage could not be cleared:', e);
     }
 
     // Loop to perform the scrape multiple times
